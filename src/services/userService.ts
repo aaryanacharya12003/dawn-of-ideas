@@ -5,7 +5,7 @@ export interface UserData {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'accountant' | 'viewer'; // Match the UserRole type
+  role: 'admin' | 'manager' | 'accountant' | 'viewer';
   status: string;
   assignedPGs: string[];
   lastLogin: string;
@@ -50,9 +50,13 @@ export const fetchUsers = async () => {
 
 export const addUser = async (userData: Omit<UserData, 'id' | 'created_at' | 'updated_at'>) => {
   try {
+    // Generate a UUID for the new user
+    const userId = crypto.randomUUID();
+    
     const { data, error } = await supabase
       .from('users')
       .insert([{
+        id: userId,
         name: userData.name,
         email: userData.email,
         role: userData.role,
