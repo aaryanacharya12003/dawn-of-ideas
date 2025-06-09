@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
@@ -95,28 +96,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (userData && !userError) {
             console.log('Found user in users table:', userData);
             setUser(convertDbUserToUser(userData));
-          } else {
-            // Fallback to profiles table if users table doesn't have the user
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('id, name, role, assigned_pgs')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profileData && !profileError) {
-              console.log('Found user in profiles table:', profileData);
-              // Convert profile data to user format
-              const userFromProfile = {
-                id: profileData.id,
-                name: profileData.name,
-                email: session.user.email,
-                role: profileData.role,
-                status: 'active',
-                lastLogin: new Date().toISOString(),
-                assignedPGs: ensureStringArray(profileData.assigned_pgs)
-              };
-              setUser(userFromProfile as User);
-            }
           }
         }
       } catch (error) {
@@ -140,26 +119,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (userData && !userError) {
           setUser(convertDbUserToUser(userData));
-        } else {
-          // Fallback to profiles table
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, role, assigned_pgs')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileData && !profileError) {
-            const userFromProfile = {
-              id: profileData.id,
-              name: profileData.name,
-              email: session.user.email,
-              role: profileData.role,
-              status: 'active',
-              lastLogin: new Date().toISOString(),
-              assignedPGs: ensureStringArray(profileData.assigned_pgs)
-            };
-            setUser(userFromProfile as User);
-          }
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -228,7 +187,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .eq('id', existingUser.id);
         }
       } else {
-        // User not found in users table, check profiles table with proper join
+        // User not found in users table, try direct authentication
         const { data: authUser, error: authError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -240,27 +199,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (authUser.user) {
-          // Now get profile data
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('id, name, role, assigned_pgs')
-            .eq('id', authUser.user.id)
-            .single();
-
-          if (profileData && !profileError) {
-            const userFromProfile = {
-              id: profileData.id,
-              name: profileData.name,
-              email: email,
-              role: profileData.role,
-              status: 'active',
-              lastLogin: new Date().toISOString(),
-              assignedPGs: ensureStringArray(profileData.assigned_pgs)
-            };
-            setUser(userFromProfile as User);
-          } else {
-            throw new Error('User profile not found');
-          }
+          throw new Error('User profile not found in database');
         }
       }
     } catch (error: any) {
@@ -307,7 +246,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (authData.user) {
-        // Create the user profile in both users and profiles tables
+        // Create the user profile in users table
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([{
@@ -324,20 +263,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (userError) {
           console.error('User profile creation error in users table:', userError);
-        }
-
-        // Also create in profiles table for backward compatibility
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            name,
-            role,
-            assigned_pgs: finalAssignedPGs
-          }]);
-
-        if (profileError) {
-          console.error('User profile creation error in profiles table:', profileError);
+          throw userError;
         }
 
         console.log('User created successfully in database');
@@ -369,16 +295,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw error;
       }
 
-      // Also update profiles table for consistency
-      await supabase
-        .from('profiles')
-        .update({
-          name: userData.name,
-          role: userData.role,
-          assigned_pgs: userData.assignedPGs
-        })
-        .eq('id', userData.id);
-
       // Update current user if it's the same user
       if (user && user.id === userData.id) {
         setUser(convertDbUserToUser(data));
@@ -399,16 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (userError) {
         console.error('Error deleting user profile from users table:', userError);
-      }
-
-      // Delete from profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      if (profileError) {
-        console.error('Error deleting user profile from profiles table:', profileError);
+        throw userError;
       }
 
       console.log('User deleted successfully');

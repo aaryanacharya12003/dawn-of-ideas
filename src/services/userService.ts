@@ -2,12 +2,12 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserData {
-  id: string; // Required field
+  id: string;
   name: string;
   email: string;
-  role: string; // Change to string to match database
+  role: 'admin' | 'manager' | 'accountant' | 'viewer'; // Match the UserRole type
   status: string;
-  assignedPGs: string[]; // This will be converted from Json
+  assignedPGs: string[];
   lastLogin: string;
   created_at?: string;
   updated_at?: string;
@@ -19,7 +19,7 @@ const convertDbUserToUserData = (dbUser: any): UserData => {
     id: dbUser.id,
     name: dbUser.name,
     email: dbUser.email,
-    role: dbUser.role,
+    role: dbUser.role as 'admin' | 'manager' | 'accountant' | 'viewer',
     status: dbUser.status || 'active',
     lastLogin: dbUser.lastLogin || 'Never',
     assignedPGs: Array.isArray(dbUser.assignedPGs) ? dbUser.assignedPGs : (dbUser.assignedPGs ? JSON.parse(dbUser.assignedPGs) : []),
@@ -161,12 +161,6 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
       throw error;
     }
 
-    // Also update profiles table for consistency if it exists
-    await supabase
-      .from('profiles')
-      .update({ assigned_pgs: currentPGs })
-      .eq('id', userId);
-
     return convertDbUserToUserData(data);
   } catch (error) {
     console.error('Error in assignPGToUser:', error);
@@ -206,12 +200,6 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
       console.error('Error removing PG from user:', error);
       throw error;
     }
-
-    // Also update profiles table for consistency if it exists
-    await supabase
-      .from('profiles')
-      .update({ assigned_pgs: updatedPGs })
-      .eq('id', userId);
 
     return convertDbUserToUserData(data);
   } catch (error) {

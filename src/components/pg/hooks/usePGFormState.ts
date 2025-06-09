@@ -3,10 +3,23 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PG, RoomType, User } from '@/types';
-import { fetchUsers } from '@/services/dataService';
+import { fetchUsers } from '@/services/userService';
 import { useToast } from '@/hooks/use-toast';
 import { pgFormSchema, PGFormValues } from '@/components/pg/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
+
+// Helper function to convert UserData to User type
+const convertUserDataToUser = (userData: any): User => {
+  return {
+    id: userData.id,
+    name: userData.name,
+    email: userData.email,
+    role: userData.role as any,
+    status: userData.status,
+    lastLogin: userData.lastLogin,
+    assignedPGs: userData.assignedPGs
+  };
+};
 
 export const usePGFormState = (pg?: PG, isOpen?: boolean) => {
   const { toast } = useToast();
@@ -39,9 +52,12 @@ export const usePGFormState = (pg?: PG, isOpen?: boolean) => {
     const loadManagers = async () => {
       try {
         console.log("usePGFormState: Fetching managers...");
-        const users = await fetchUsers();
-        console.log("usePGFormState: Fetched users:", users);
-        const availableManagers = users.filter(user => user.role === 'manager' && user.status === 'active');
+        const usersData = await fetchUsers();
+        console.log("usePGFormState: Fetched users:", usersData);
+        
+        // Convert UserData to User type and filter for managers
+        const convertedUsers = usersData.map(convertUserDataToUser);
+        const availableManagers = convertedUsers.filter(user => user.role === 'manager' && user.status === 'active');
         setManagers(availableManagers);
         console.log("usePGFormState: Available managers:", availableManagers);
       } catch (error) {

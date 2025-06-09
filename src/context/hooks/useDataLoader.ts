@@ -8,6 +8,19 @@ import { fetchUsers } from '@/services/userService';
 import { transformRoomFromDB, enhanceStudentsWithRoomInfo, populateStudentsIntoRooms } from '../utils/dataTransformUtils';
 import { filterDataByUserRole } from '../utils/roleFilterUtils';
 
+// Helper function to convert UserData to User type
+const convertUserDataToUser = (userData: any): User => {
+  return {
+    id: userData.id,
+    name: userData.name,
+    email: userData.email,
+    role: userData.role as any,
+    status: userData.status,
+    lastLogin: userData.lastLogin,
+    assignedPGs: userData.assignedPGs
+  };
+};
+
 export const useDataLoader = (user: any) => {
   const [pgs, setPgs] = useState<PG[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -97,7 +110,10 @@ export const useDataLoader = (user: any) => {
         console.log("DataLoader: Loading users...");
         const usersData = await fetchUsers();
         console.log("DataLoader: Loaded users:", usersData.length);
-        stableSetters.setUsers(usersData);
+        
+        // Convert UserData to User type
+        const convertedUsers = usersData.map(convertUserDataToUser);
+        stableSetters.setUsers(convertedUsers);
       }
       
     } catch (error) {
