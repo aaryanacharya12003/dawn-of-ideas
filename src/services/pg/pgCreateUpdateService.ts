@@ -5,8 +5,8 @@ import { PG } from '@/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
 import { Database } from '@/integrations/supabase/types';
 
-// Use the correct Supabase-generated insert type which handles auto-generated fields
-type PGInsert = Database['public']['Tables']['pgs']['Insert'];
+// Create a proper insert type that excludes auto-generated fields
+type PGInsert = Omit<Database['public']['Tables']['pgs']['Insert'], 'id'>;
 type PGUpdate = Database['public']['Tables']['pgs']['Update'];
 
 export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
@@ -313,5 +313,137 @@ export const updatePG = async (id: string, pgData: PG): Promise<PG> => {
     console.error('Error in updatePG service:', error);
     logError('Error in updatePG service:', error);
     throw error;
+  }
+};
+
+// Enhanced helper function to create rooms for a new PG with allocation support
+const createRoomsForPG = async (pgId: string, pgData: Omit<PG, 'id'>, roomAllocations?: FloorAllocation[]) => {
+  try {
+    const totalRooms = pgData.totalRooms;
+    const roomTypes = pgData.roomTypes || [];
+    const floors = pgData.floors || 1;
+    
+    console.log(`Creating ${totalRooms} rooms for PG ${pgId} across ${floors} floors`);
+    
+    if (roomAllocations && roomAllocations.length > 0) {
+      // Use custom room allocation
+      console.log('Using custom room allocation:', roomAllocations);
+      
+      let roomsCreated = 0;
+      
+      for (const allocation of roomAllocations) {
+        const roomType = roomTypes.find(rt => rt.id === allocation.roomTypeId);
+        if (!roomType) {
+          console.warn(`Room type ${allocation.roomTypeId} not found, skipping allocation`);
+          continue;
+        }
+        
+        console.log(`Creating ${allocation.count} rooms of type ${roomType.name} on floor ${allocation.floor}`);
+        
+        // Create rooms for this allocation
+        for (let i = 1; i <= allocation.count; i++) {
+          const roomNumberOnFloor = i.toString().padStart(2, '0');
+          const fullRoomNumber = `${allocation.floor}${roomNumberOnFloor}`;
+          
+          const roomData = {
+            pg_id: pgId,
+            room_number: fullRoomNumber,
+            room_type: roomType.name,
+            capacity: roomType.capacity,
+            rent: roomType.price,
+            status: 'available'
+          };
+          
+          console.log('Creating room:', roomData);
+          await addRoomToDatabase(roomData);
+          roomsCreated++;
+        }
+      }
+      
+      // Check if we need to create additional unallocated rooms
+      const remainingRooms = totalRooms - roomsCreated;
+      
+      if (remainingRooms > 0) {
+        console.log(`Creating ${remainingRooms} additional rooms for unallocated space`);
+        await createStandardRooms(pgId, remainingRooms, roomTypes, floors, roomsCreated + 1);
+      }
+    } else {
+      // Use standard room creation logic
+      await createStandardRooms(pgId, totalRooms, roomTypes, floors, 1);
+    }
+    
+    console.log(`Successfully created rooms for PG ${pgId}`);
+  } catch (error) {
+    console.error('Error creating rooms for PG:', error);
+    throw new Error(`Failed to create rooms: ${error.message}`);
+  }
+};
+
+// Helper function to add room to database
+const addRoomToDatabase = async (roomData: any) => {
+  const { data, error } = await supabase
+    .from('rooms')
+    .insert([roomData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating room:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Helper function for standard room creation
+const createStandardRooms = async (pgId: string, roomCount: number, roomTypes: any[], floors: number, startingRoomNumber: number = 1) => {
+  const roomsPerFloor = Math.ceil(roomCount / floors);
+  
+  if (roomTypes.length === 0) {
+    // Create standard rooms if no room types defined
+    for (let i = 0; i < roomCount; i++) {
+      const roomNumber = startingRoomNumber + i;
+      const floor = Math.ceil(roomNumber / roomsPerFloor);
+      const roomNumberOnFloor = ((roomNumber - 1) % roomsPerFloor + 1).toString().padStart(2, '0');
+      
+      const roomData = {
+        pg_id: pgId,
+        room_number: `${floor}${roomNumberOnFloor}`,
+        room_type: 'Standard',
+        capacity: 1,
+        rent: 0,
+        status: 'available'
+      };
+      
+      await addRoomToDatabase(roomData);
+    }
+  } else {
+    // Distribute rooms evenly among room types
+    const roomsPerType = Math.floor(roomCount / roomTypes.length);
+    const remainingRooms = roomCount % roomTypes.length;
+    
+    let roomNumber = startingRoomNumber;
+    
+    for (let i = 0; i < roomTypes.length; i++) {
+      const roomType = roomTypes[i];
+      const roomsToCreate = roomsPerType + (i < remainingRooms ? 1 : 0);
+      
+      for (let j = 0; j < roomsToCreate; j++) {
+        const floor = Math.ceil(roomNumber / roomsPerFloor);
+        const roomNumberOnFloor = ((roomNumber - 1) % roomsPerFloor + 1).toString().padStart(2, '0');
+        
+        const roomData = {
+          pg_id: pgId,
+          room_number: `${floor}${roomNumberOnFloor}`,
+          room_type: roomType.name,
+          capacity: roomType.capacity,
+          rent: roomType.price,
+          status: 'available'
+        };
+        
+        await addRoomToDatabase(roomData);
+        roomNumber++;
+      }
+    }
   }
 };
