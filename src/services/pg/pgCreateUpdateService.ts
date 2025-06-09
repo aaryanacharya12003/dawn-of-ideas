@@ -1,8 +1,11 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logError, transformPGFromDB } from './pgUtils';
 import { PG } from '@/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
+import { Database } from '@/integrations/supabase/types';
+
+type PGInsert = Database['public']['Tables']['pgs']['Insert'];
+type PGUpdate = Database['public']['Tables']['pgs']['Update'];
 
 export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
   console.log('PG Service: Adding PG with data:', pgData);
@@ -50,22 +53,7 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
     }
 
     // Transform the PG data to match database schema with proper defaults
-    const dbPGData: Omit<{
-      address?: string;
-      amenities?: any;
-      created_at?: string;
-      description?: string;
-      id: string;
-      images?: any;
-      manager_id?: string;
-      monthly_rent?: string;
-      name?: string;
-      occupied_rooms?: string;
-      pg_type?: string;
-      revenue?: string;
-      total_rooms?: number;
-      updated_at?: string;
-    }, 'id'> = {
+    const dbPGData: PGInsert = {
       name: pgData.name.trim(),
       description: pgData.contactInfo?.trim() || '',
       address: pgData.location.trim(),
@@ -275,7 +263,7 @@ export const updatePG = async (id: string, pgData: PG): Promise<PG> => {
     }
 
     // Transform the PG data to match database schema
-    const dbPGData = {
+    const dbPGData: PGUpdate = {
       name: pgData.name,
       description: pgData.contactInfo || '',
       address: pgData.location || '',
