@@ -50,7 +50,22 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
     }
 
     // Transform the PG data to match database schema with proper defaults
-    const dbPGData = {
+    const dbPGData: Omit<{
+      address?: string;
+      amenities?: any;
+      created_at?: string;
+      description?: string;
+      id: string;
+      images?: any;
+      manager_id?: string;
+      monthly_rent?: string;
+      name?: string;
+      occupied_rooms?: string;
+      pg_type?: string;
+      revenue?: string;
+      total_rooms?: number;
+      updated_at?: string;
+    }, 'id'> = {
       name: pgData.name.trim(),
       description: pgData.contactInfo?.trim() || '',
       address: pgData.location.trim(),
