@@ -1,10 +1,11 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logError, transformPGFromDB } from './pgUtils';
 import { PG } from '@/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
 import { Database } from '@/integrations/supabase/types';
 
-type PGInsert = Database['public']['Tables']['pgs']['Insert'];
+type PGInsert = Omit<Database['public']['Tables']['pgs']['Insert'], 'id'>;
 type PGUpdate = Database['public']['Tables']['pgs']['Update'];
 
 export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
