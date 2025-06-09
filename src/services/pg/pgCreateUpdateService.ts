@@ -57,19 +57,19 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
       pg_type: pgData.type, // Map the type field correctly to pg_type
       manager_id: managerId,
       total_rooms: pgData.totalRooms,
-      occupied_rooms: 0,
-      monthly_rent: pgData.roomTypes?.[0]?.price || 0,
+      occupied_rooms: '0', // Convert to string as expected by database
+      monthly_rent: String(pgData.roomTypes?.[0]?.price || 0), // Convert to string
       amenities: pgData.roomTypes?.flatMap(rt => rt.amenities || []) || [],
       images: pgData.images || [],
-      revenue: 0
+      revenue: '0' // Convert to string as expected by database
     };
 
     console.log('PG Service: Transformed DB data:', dbPGData);
 
-    // Insert the PG into the database
+    // Insert the PG into the database - don't include id, let Supabase generate it
     const { data, error } = await supabase
       .from('pgs')
-      .insert([dbPGData])
+      .insert(dbPGData)
       .select()
       .single();
 
@@ -267,11 +267,11 @@ export const updatePG = async (id: string, pgData: PG): Promise<PG> => {
       pg_type: pgData.type, // Ensure type field is properly mapped to pg_type
       manager_id: managerId,
       total_rooms: pgData.totalRooms || 0,
-      occupied_rooms: pgData.actualOccupancy || 0,
-      monthly_rent: pgData.roomTypes?.[0]?.price || pgData.revenue || 0,
+      occupied_rooms: String(pgData.actualOccupancy || 0), // Convert to string
+      monthly_rent: String(pgData.roomTypes?.[0]?.price || pgData.revenue || 0), // Convert to string
       amenities: pgData.roomTypes?.flatMap(rt => rt.amenities || []) || [],
       images: pgData.images || [],
-      revenue: pgData.revenue || 0,
+      revenue: String(pgData.revenue || 0), // Convert to string
       updated_at: new Date().toISOString()
     };
 
