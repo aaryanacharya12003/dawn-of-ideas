@@ -11,283 +11,235 @@ export type Database = {
     Tables: {
       payments: {
         Row: {
-          amount: number
-          approval_status: string
+          amount: number | null
+          approval_status: string | null
           approved_at: string | null
           approved_by: string | null
-          created_at: string
-          date: string
+          created_at: string | null
+          date: string | null
           id: string
-          mode: string
+          mode: string | null
           note: string | null
           student_id: string
         }
         Insert: {
-          amount: number
-          approval_status?: string
+          amount?: number | null
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          created_at?: string
-          date: string
+          created_at?: string | null
+          date?: string | null
           id?: string
-          mode?: string
+          mode?: string | null
           note?: string | null
           student_id: string
         }
         Update: {
-          amount?: number
-          approval_status?: string
+          amount?: number | null
+          approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          created_at?: string
-          date?: string
+          created_at?: string | null
+          date?: string | null
           id?: string
-          mode?: string
+          mode?: string | null
           note?: string | null
           student_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "payments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       pgs: {
         Row: {
           address: string | null
           amenities: Json | null
-          created_at: string
+          created_at: string | null
           description: string | null
           id: string
           images: Json | null
           manager_id: string | null
-          monthly_rent: number | null
-          name: string
-          occupied_rooms: number | null
+          monthly_rent: string | null
+          name: string | null
+          occupied_rooms: string | null
           pg_type: string | null
-          revenue: number | null
+          revenue: string | null
           total_rooms: number | null
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           address?: string | null
           amenities?: Json | null
-          created_at?: string
+          created_at?: string | null
           description?: string | null
-          id?: string
+          id: string
           images?: Json | null
           manager_id?: string | null
-          monthly_rent?: number | null
-          name: string
-          occupied_rooms?: number | null
+          monthly_rent?: string | null
+          name?: string | null
+          occupied_rooms?: string | null
           pg_type?: string | null
-          revenue?: number | null
+          revenue?: string | null
           total_rooms?: number | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           address?: string | null
           amenities?: Json | null
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           images?: Json | null
           manager_id?: string | null
-          monthly_rent?: number | null
-          name?: string
-          occupied_rooms?: number | null
+          monthly_rent?: string | null
+          name?: string | null
+          occupied_rooms?: string | null
           pg_type?: string | null
-          revenue?: number | null
+          revenue?: string | null
           total_rooms?: number | null
-          updated_at?: string
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "pgs_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
-          assigned_pgs: Json | null
           created_at: string
           id: string
-          name: string
-          role: string
-          updated_at: string
+          name: string | null
         }
         Insert: {
-          assigned_pgs?: Json | null
-          created_at?: string
-          id: string
-          name: string
-          role?: string
-          updated_at?: string
-        }
-        Update: {
-          assigned_pgs?: Json | null
           created_at?: string
           id?: string
-          name?: string
-          role?: string
-          updated_at?: string
+          name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
         }
         Relationships: []
       }
       rooms: {
         Row: {
-          capacity: number
-          created_at: string
+          capacity: number | null
+          created_at: string | null
           id: string
           occupant_contact: string | null
           occupant_name: string | null
-          pg_id: string
-          rent: number
-          room_number: string
-          room_type: string
-          status: string
-          updated_at: string
+          pg_id: string | null
+          rent: number | null
+          room_number: number | null
+          room_type: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          capacity?: number
-          created_at?: string
-          id?: string
+          capacity?: number | null
+          created_at?: string | null
+          id: string
           occupant_contact?: string | null
           occupant_name?: string | null
-          pg_id: string
-          rent: number
-          room_number: string
-          room_type: string
-          status?: string
-          updated_at?: string
+          pg_id?: string | null
+          rent?: number | null
+          room_number?: number | null
+          room_type?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          capacity?: number
-          created_at?: string
+          capacity?: number | null
+          created_at?: string | null
           id?: string
           occupant_contact?: string | null
           occupant_name?: string | null
-          pg_id?: string
-          rent?: number
-          room_number?: string
-          room_type?: string
-          status?: string
-          updated_at?: string
+          pg_id?: string | null
+          rent?: number | null
+          room_number?: number | null
+          room_type?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "rooms_pg_id_fkey"
-            columns: ["pg_id"]
-            isOneToOne: false
-            referencedRelation: "pgs"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       students: {
         Row: {
-          aadhaar_number: string | null
+          aadhaar_number: number | null
           address: string | null
-          created_at: string
-          deposit: number
-          end_date: string
+          created_at: string | null
+          deposit: number | null
+          end_date: string | null
           id: string
-          name: string
+          name: string | null
           occupation: string | null
           pg_id: string | null
-          phone: string | null
+          phone: number | null
           room_id: string | null
-          start_date: string
-          total_fees: number
+          start_date: string | null
+          total_fees: number | null
         }
         Insert: {
-          aadhaar_number?: string | null
+          aadhaar_number?: number | null
           address?: string | null
-          created_at?: string
-          deposit?: number
-          end_date: string
-          id?: string
-          name: string
+          created_at?: string | null
+          deposit?: number | null
+          end_date?: string | null
+          id: string
+          name?: string | null
           occupation?: string | null
           pg_id?: string | null
-          phone?: string | null
+          phone?: number | null
           room_id?: string | null
-          start_date: string
-          total_fees?: number
+          start_date?: string | null
+          total_fees?: number | null
         }
         Update: {
-          aadhaar_number?: string | null
+          aadhaar_number?: number | null
           address?: string | null
-          created_at?: string
-          deposit?: number
-          end_date?: string
+          created_at?: string | null
+          deposit?: number | null
+          end_date?: string | null
           id?: string
-          name?: string
+          name?: string | null
           occupation?: string | null
           pg_id?: string | null
-          phone?: string | null
+          phone?: number | null
           room_id?: string | null
-          start_date?: string
-          total_fees?: number
+          start_date?: string | null
+          total_fees?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "students_pg_id_fkey"
-            columns: ["pg_id"]
-            isOneToOne: false
-            referencedRelation: "pgs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {
           assignedPGs: Json | null
-          created_at: string
-          email: string
+          created_at: string | null
+          email: string | null
           id: string
           lastLogin: string | null
-          name: string
-          role: string
-          status: string
-          updated_at: string
+          name: string | null
+          role: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
           assignedPGs?: Json | null
-          created_at?: string
-          email: string
-          id?: string
+          created_at?: string | null
+          email?: string | null
+          id: string
           lastLogin?: string | null
-          name: string
-          role?: string
-          status?: string
-          updated_at?: string
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
           assignedPGs?: Json | null
-          created_at?: string
-          email?: string
+          created_at?: string | null
+          email?: string | null
           id?: string
           lastLogin?: string | null
-          name?: string
-          role?: string
-          status?: string
-          updated_at?: string
+          name?: string | null
+          role?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
