@@ -2,13 +2,31 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UserData {
-  id?: string;
+  id: string; // Required field
   name: string;
   email: string;
-  role: string;
-  status?: string;
-  assignedPGs?: string[];
+  role: string; // Change to string to match database
+  status: string;
+  assignedPGs: string[]; // This will be converted from Json
+  lastLogin: string;
+  created_at?: string;
+  updated_at?: string;
 }
+
+// Helper function to convert database user to UserData type
+const convertDbUserToUserData = (dbUser: any): UserData => {
+  return {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    role: dbUser.role,
+    status: dbUser.status || 'active',
+    lastLogin: dbUser.lastLogin || 'Never',
+    assignedPGs: Array.isArray(dbUser.assignedPGs) ? dbUser.assignedPGs : (dbUser.assignedPGs ? JSON.parse(dbUser.assignedPGs) : []),
+    created_at: dbUser.created_at,
+    updated_at: dbUser.updated_at
+  };
+};
 
 export const fetchUsers = async () => {
   try {
@@ -22,18 +40,26 @@ export const fetchUsers = async () => {
       throw error;
     }
 
-    return data || [];
+    const convertedUsers = (data || []).map(convertDbUserToUserData);
+    return convertedUsers;
   } catch (error) {
     console.error('Error in fetchUsers:', error);
     throw error;
   }
 };
 
-export const addUser = async (userData: UserData) => {
+export const addUser = async (userData: Omit<UserData, 'id' | 'created_at' | 'updated_at'>) => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .insert([userData])
+      .insert([{
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        status: userData.status,
+        assignedPGs: userData.assignedPGs,
+        lastLogin: userData.lastLogin
+      }])
       .select()
       .single();
 
@@ -42,7 +68,7 @@ export const addUser = async (userData: UserData) => {
       throw error;
     }
 
-    return data;
+    return convertDbUserToUserData(data);
   } catch (error) {
     console.error('Error in addUser:', error);
     throw error;
@@ -51,9 +77,20 @@ export const addUser = async (userData: UserData) => {
 
 export const updateUser = async (id: string, userData: Partial<UserData>) => {
   try {
+    const updateData: any = {};
+    
+    if (userData.name !== undefined) updateData.name = userData.name;
+    if (userData.email !== undefined) updateData.email = userData.email;
+    if (userData.role !== undefined) updateData.role = userData.role;
+    if (userData.status !== undefined) updateData.status = userData.status;
+    if (userData.assignedPGs !== undefined) updateData.assignedPGs = userData.assignedPGs;
+    if (userData.lastLogin !== undefined) updateData.lastLogin = userData.lastLogin;
+    
+    updateData.updated_at = new Date().toISOString();
+
     const { data, error } = await supabase
       .from('users')
-      .update(userData)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -63,7 +100,7 @@ export const updateUser = async (id: string, userData: Partial<UserData>) => {
       throw error;
     }
 
-    return data;
+    return convertDbUserToUserData(data);
   } catch (error) {
     console.error('Error in updateUser:', error);
     throw error;
@@ -124,13 +161,13 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
       throw error;
     }
 
-    // Also update profiles table for consistency
+    // Also update profiles table for consistency if it exists
     await supabase
       .from('profiles')
       .update({ assigned_pgs: currentPGs })
       .eq('id', userId);
 
-    return data;
+    return convertDbUserToUserData(data);
   } catch (error) {
     console.error('Error in assignPGToUser:', error);
     throw error;
@@ -170,13 +207,13 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
       throw error;
     }
 
-    // Also update profiles table for consistency
+    // Also update profiles table for consistency if it exists
     await supabase
       .from('profiles')
       .update({ assigned_pgs: updatedPGs })
       .eq('id', userId);
 
-    return data;
+    return convertDbUserToUserData(data);
   } catch (error) {
     console.error('Error in removePGFromUser:', error);
     throw error;

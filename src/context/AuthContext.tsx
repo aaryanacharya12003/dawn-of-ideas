@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
@@ -69,7 +68,7 @@ const convertDbUserToUser = (dbUser: any): User => {
     id: dbUser.id,
     name: dbUser.name,
     email: dbUser.email,
-    role: dbUser.role,
+    role: dbUser.role as any, // Cast to satisfy TypeScript
     status: dbUser.status || 'active',
     lastLogin: dbUser.lastLogin || 'Never',
     assignedPGs: ensureStringArray(dbUser.assignedPGs)
@@ -100,7 +99,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Fallback to profiles table if users table doesn't have the user
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
-              .select('*')
+              .select('id, name, role, assigned_pgs')
               .eq('id', session.user.id)
               .single();
 
@@ -116,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 lastLogin: new Date().toISOString(),
                 assignedPGs: ensureStringArray(profileData.assigned_pgs)
               };
-              setUser(userFromProfile);
+              setUser(userFromProfile as User);
             }
           }
         }
@@ -145,7 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Fallback to profiles table
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, role, assigned_pgs')
             .eq('id', session.user.id)
             .single();
 
@@ -159,7 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               lastLogin: new Date().toISOString(),
               assignedPGs: ensureStringArray(profileData.assigned_pgs)
             };
-            setUser(userFromProfile);
+            setUser(userFromProfile as User);
           }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -229,41 +228,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .eq('id', existingUser.id);
         }
       } else {
-        // User not found in users table, check profiles table
-        const { data: profileUser, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .inner_join('auth.users', 'profiles.id', 'auth.users.id')
-          .eq('auth.users.email', email)
-          .single();
+        // User not found in users table, check profiles table with proper join
+        const { data: authUser, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-        if (profileUser && !profileError) {
-          // Try Supabase authentication
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+        if (authError) {
+          console.error('Supabase login error:', authError);
+          throw authError;
+        }
 
-          if (error) {
-            console.error('Supabase login error:', error);
-            throw error;
-          }
+        if (authUser.user) {
+          // Now get profile data
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, role, assigned_pgs')
+            .eq('id', authUser.user.id)
+            .single();
 
-          if (data.user) {
+          if (profileData && !profileError) {
             const userFromProfile = {
-              id: profileUser.id,
-              name: profileUser.name,
+              id: profileData.id,
+              name: profileData.name,
               email: email,
-              role: profileUser.role,
+              role: profileData.role,
               status: 'active',
               lastLogin: new Date().toISOString(),
-              assignedPGs: ensureStringArray(profileUser.assigned_pgs)
+              assignedPGs: ensureStringArray(profileData.assigned_pgs)
             };
-            setUser(userFromProfile);
+            setUser(userFromProfile as User);
+          } else {
+            throw new Error('User profile not found');
           }
-        } else {
-          // User not found in either table
-          throw new Error('Invalid email or password');
         }
       }
     } catch (error: any) {
