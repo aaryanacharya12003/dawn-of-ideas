@@ -1,8 +1,9 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {
   :root {
@@ -15,42 +16,35 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 198 96% 48%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217 19% 47%;
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 31 90% 51%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 198 96% 48%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 198 96% 48%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 198 96% 48%;
+    --sidebar-accent: 198 96% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 198 96% 48%;
+    --sidebar-ring: 0 0% 100%;
   }
 
   .dark {
@@ -63,7 +57,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 198 96% 48%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -72,23 +66,24 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 31 90% 51%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 198 96% 48%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 198 96% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 198 96% 48%;
   }
 }
 
@@ -99,5 +94,194 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Enhanced responsive utilities */
+@layer components {
+  .responsive-tabs {
+    @apply flex flex-wrap gap-2 overflow-x-auto w-full;
+  }
+  
+  .responsive-tabs::-webkit-scrollbar {
+    @apply h-1;
+  }
+  
+  .responsive-tabs::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .responsive-tabs::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+
+  /* Responsive tabs on small screens */
+  @media (max-width: 640px) {
+    .responsive-tabs {
+      @apply pb-2 justify-start;
+    }
+  }
+
+  /* Full width responsive containers for all pages */
+  .page-container {
+    @apply w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16;
+    max-width: none;
+  }
+
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 w-full;
+  }
+
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row gap-4 sm:gap-6 w-full;
+  }
+
+  /* Card responsiveness with full width support */
+  .responsive-card {
+    @apply w-full p-4 sm:p-6;
+  }
+
+  /* Button responsiveness */
+  .responsive-button-group {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto;
+  }
+
+  /* Table responsiveness with full width */
+  .responsive-table-container {
+    @apply w-full overflow-x-auto;
+  }
+
+  /* Form responsiveness with full width */
+  .responsive-form {
+    @apply w-full space-y-4 sm:space-y-6;
+  }
+
+  .responsive-form-row {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 w-full;
+  }
+
+  /* Enhanced tab responsiveness */
+  .responsive-tab-list {
+    @apply w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1 p-1;
+  }
+
+  .responsive-tab-trigger {
+    @apply w-full min-w-0 px-3 py-2.5 text-sm font-medium text-center whitespace-nowrap overflow-hidden text-ellipsis;
+  }
+
+  /* Tab content full width */
+  .responsive-tab-content {
+    @apply w-full mt-4 space-y-4;
+  }
+
+  /* Enhanced mobile responsiveness */
+  @media (max-width: 768px) {
+    .page-container {
+      @apply px-3;
+    }
+    
+    .responsive-grid {
+      @apply grid-cols-1 gap-3;
+    }
+    
+    .responsive-flex {
+      @apply flex-col gap-3;
+    }
+    
+    .responsive-card {
+      @apply p-3;
+    }
+
+    .responsive-tab-list {
+      @apply grid-cols-1 gap-1;
+    }
+
+    .responsive-tab-trigger {
+      @apply py-3 text-base;
+    }
+  }
+
+  /* Tablet responsiveness */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .responsive-tab-list {
+      @apply grid-cols-2;
+    }
+  }
+
+  /* Enhanced desktop full-width support */
+  @media (min-width: 1024px) {
+    .page-container {
+      @apply px-8;
+    }
+    
+    .responsive-grid {
+      @apply xl:grid-cols-4 2xl:grid-cols-5;
+    }
+
+    .responsive-tab-list {
+      @apply grid-cols-3;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .page-container {
+      @apply px-12;
+    }
+    
+    .responsive-grid {
+      @apply 2xl:grid-cols-6;
+    }
+
+    .responsive-tab-list {
+      @apply grid-cols-4;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .page-container {
+      @apply px-16;
+    }
+    
+    .responsive-grid {
+      @apply 2xl:grid-cols-7;
+    }
+
+    .responsive-tab-list {
+      @apply grid-cols-5;
+    }
+  }
+
+  /* Extra large screens */
+  @media (min-width: 1920px) {
+    .page-container {
+      @apply px-20;
+    }
+    
+    .responsive-grid {
+      @apply 2xl:grid-cols-8;
+    }
+
+    .responsive-tab-list {
+      @apply grid-cols-6;
+    }
   }
 }
