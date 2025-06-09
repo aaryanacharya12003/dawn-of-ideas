@@ -1,10 +1,12 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logError, transformPGFromDB } from './pgUtils';
 import { PG } from '@/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
 import { Database } from '@/integrations/supabase/types';
 
-type PGInsert = Database['public']['Tables']['pgs']['Insert'];
+// Create a proper insert type that omits the auto-generated id field
+type PGInsert = Omit<Database['public']['Tables']['pgs']['Row'], 'id' | 'created_at' | 'updated_at'>;
 type PGUpdate = Database['public']['Tables']['pgs']['Update'];
 
 export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
