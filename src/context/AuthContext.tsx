@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
@@ -85,15 +86,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          // Get user profile from users table
-          const { data: userData, error } = await supabase
+          // Try to get user profile from users table first
+          const { data: userData, error: userError } = await supabase
             .from('users')
             .select('*')
             .eq('email', session.user.email)
             .single();
 
-          if (userData && !error) {
+          if (userData && !userError) {
+            console.log('Found user in users table:', userData);
             setUser(convertDbUserToUser(userData));
+          } else {
+            // Fallback to profiles table if users table doesn't have the user
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profileData && !profileError) {
+              console.log('Found user in profiles table:', profileData);
+              // Convert profile data to user format
+              const userFromProfile = {
+                id: profileData.id,
+                name: profileData.name,
+                email: session.user.email,
+                role: profileData.role,
+                status: 'active',
+                lastLogin: new Date().toISOString(),
+                assignedPGs: ensureStringArray(profileData.assigned_pgs)
+              };
+              setUser(userFromProfile);
+            }
           }
         }
       } catch (error) {
@@ -108,15 +132,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // Get user profile from users table
-        const { data: userData, error } = await supabase
+        // Get user profile from database
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('*')
           .eq('email', session.user.email)
           .single();
 
-        if (userData && !error) {
+        if (userData && !userError) {
           setUser(convertDbUserToUser(userData));
+        } else {
+          // Fallback to profiles table
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileData && !profileError) {
+            const userFromProfile = {
+              id: profileData.id,
+              name: profileData.name,
+              email: session.user.email,
+              role: profileData.role,
+              status: 'active',
+              lastLogin: new Date().toISOString(),
+              assignedPGs: ensureStringArray(profileData.assigned_pgs)
+            };
+            setUser(userFromProfile);
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -141,7 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Try to find user in our users table first (for users created through the app)
+      // Try to find user in our users table first
       const { data: existingUser, error: userCheckError } = await supabase
         .from('users')
         .select('*')
@@ -175,7 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (data.user) {
-          console.log('Supabase user login successful:', existingUser);
+          console.log('Database user login successful:', existingUser);
           setUser(convertDbUserToUser(existingUser));
 
           // Update last login time
@@ -185,8 +229,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .eq('id', existingUser.id);
         }
       } else {
-        // User not found in our users table, throw error
-        throw new Error('Invalid email or password');
+        // User not found in users table, check profiles table
+        const { data: profileUser, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .inner_join('auth.users', 'profiles.id', 'auth.users.id')
+          .eq('auth.users.email', email)
+          .single();
+
+        if (profileUser && !profileError) {
+          // Try Supabase authentication
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (error) {
+            console.error('Supabase login error:', error);
+            throw error;
+          }
+
+          if (data.user) {
+            const userFromProfile = {
+              id: profileUser.id,
+              name: profileUser.name,
+              email: email,
+              role: profileUser.role,
+              status: 'active',
+              lastLogin: new Date().toISOString(),
+              assignedPGs: ensureStringArray(profileUser.assigned_pgs)
+            };
+            setUser(userFromProfile);
+          }
+        } else {
+          // User not found in either table
+          throw new Error('Invalid email or password');
+        }
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -212,7 +290,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // For admin role, don't assign specific PGs as they have access to all
       const finalAssignedPGs = role === 'admin' ? [] : assignedPGs;
 
-      // Create Supabase auth user first, but don't require email confirmation
+      // Create Supabase auth user first
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -221,7 +299,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           data: {
             name,
             role,
-            email_confirm: true // Skip email confirmation
+            email_confirm: true
           }
         }
       });
@@ -232,7 +310,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (authData.user) {
-        // Create the user profile in the users table
+        // Create the user profile in both users and profiles tables
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([{
@@ -248,11 +326,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .single();
 
         if (userError) {
-          console.error('User profile creation error:', userError);
-          throw userError;
+          console.error('User profile creation error in users table:', userError);
         }
 
-        console.log('User created successfully:', userData);
+        // Also create in profiles table for backward compatibility
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            name,
+            role,
+            assigned_pgs: finalAssignedPGs
+          }]);
+
+        if (profileError) {
+          console.error('User profile creation error in profiles table:', profileError);
+        }
+
+        console.log('User created successfully in database');
       }
     } catch (error) {
       console.error('Error creating user:', error);
@@ -262,6 +353,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateUser = async (userData: User): Promise<void> => {
     try {
+      // Update in users table
       const { data, error } = await supabase
         .from('users')
         .update({
@@ -276,9 +368,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .single();
 
       if (error) {
-        console.error('Error updating user:', error);
+        console.error('Error updating user in users table:', error);
         throw error;
       }
+
+      // Also update profiles table for consistency
+      await supabase
+        .from('profiles')
+        .update({
+          name: userData.name,
+          role: userData.role,
+          assigned_pgs: userData.assignedPGs
+        })
+        .eq('id', userData.id);
 
       // Update current user if it's the same user
       if (user && user.id === userData.id) {
@@ -299,8 +401,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('id', id);
 
       if (userError) {
-        console.error('Error deleting user profile:', userError);
-        throw userError;
+        console.error('Error deleting user profile from users table:', userError);
+      }
+
+      // Delete from profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (profileError) {
+        console.error('Error deleting user profile from profiles table:', profileError);
       }
 
       console.log('User deleted successfully');

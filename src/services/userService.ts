@@ -12,7 +12,7 @@ export interface UserData {
 
 export const fetchUsers = async () => {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .order('name', { ascending: true });
@@ -31,7 +31,7 @@ export const fetchUsers = async () => {
 
 export const addUser = async (userData: UserData) => {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('users')
       .insert([userData])
       .select()
@@ -51,7 +51,7 @@ export const addUser = async (userData: UserData) => {
 
 export const updateUser = async (id: string, userData: Partial<UserData>) => {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('users')
       .update(userData)
       .eq('id', id)
@@ -72,7 +72,7 @@ export const updateUser = async (id: string, userData: Partial<UserData>) => {
 
 export const deleteUser = async (id: string) => {
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('users')
       .delete()
       .eq('id', id);
@@ -94,7 +94,7 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
     console.log('Assigning PG to user:', { userId, pgName });
     
     // Get current user data
-    const { data: currentUser, error: fetchError } = await (supabase as any)
+    const { data: currentUser, error: fetchError } = await supabase
       .from('users')
       .select('assignedPGs')
       .eq('id', userId)
@@ -111,8 +111,8 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
       currentPGs.push(pgName);
     }
 
-    // Update user with new PG assignment - use pgName instead of pgId
-    const { data, error } = await (supabase as any)
+    // Update user with new PG assignment
+    const { data, error } = await supabase
       .from('users')
       .update({ assignedPGs: currentPGs })
       .eq('id', userId)
@@ -123,6 +123,12 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
       console.error('Error assigning PG to user:', error);
       throw error;
     }
+
+    // Also update profiles table for consistency
+    await supabase
+      .from('profiles')
+      .update({ assigned_pgs: currentPGs })
+      .eq('id', userId);
 
     return data;
   } catch (error) {
@@ -136,7 +142,7 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
     console.log('Removing PG from user:', { userId, pgName });
     
     // Get current user data
-    const { data: currentUser, error: fetchError } = await (supabase as any)
+    const { data: currentUser, error: fetchError } = await supabase
       .from('users')
       .select('assignedPGs')
       .eq('id', userId)
@@ -152,7 +158,7 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
     const updatedPGs = currentPGs.filter((pg: string) => pg !== pgName);
 
     // Update user with removed PG assignment
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('users')
       .update({ assignedPGs: updatedPGs })
       .eq('id', userId)
@@ -163,6 +169,12 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
       console.error('Error removing PG from user:', error);
       throw error;
     }
+
+    // Also update profiles table for consistency
+    await supabase
+      .from('profiles')
+      .update({ assigned_pgs: updatedPGs })
+      .eq('id', userId);
 
     return data;
   } catch (error) {
