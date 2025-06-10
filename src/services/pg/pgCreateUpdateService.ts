@@ -3,11 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { logError, transformPGFromDB } from './pgUtils';
 import { PG } from '@/types';
 import { FloorAllocation } from '@/components/pg/PGFormRoomAllocation';
-import { Database } from '@/integrations/supabase/types';
-
-// Use the database insert type directly without custom modifications
-type PGInsertData = Database['public']['Tables']['pgs']['Insert'];
-type PGUpdate = Database['public']['Tables']['pgs']['Update'];
 
 export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
   console.log('PG Service: Adding PG with data:', pgData);
@@ -45,7 +40,6 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
 
       if (managerError || !managerExists) {
         console.warn('Manager not found or error:', managerError);
-        // Don't fail the PG creation, just set manager to null
         console.log('Creating PG without manager assignment');
         managerId = null;
       } else {
@@ -54,28 +48,27 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
       }
     }
 
-    // Transform the PG data to match database schema with proper defaults
-    // Don't include id field - let database auto-generate it
-    const dbPGData: Omit<PGInsertData, 'id'> = {
+    // Transform the PG data to match database schema
+    const dbPGData = {
       name: pgData.name.trim(),
       description: pgData.contactInfo?.trim() || '',
       address: pgData.location.trim(),
-      pg_type: pgData.type, // Map the type field correctly to pg_type
+      pg_type: pgData.type,
       manager_id: managerId,
       total_rooms: pgData.totalRooms,
-      occupied_rooms: '0', // Convert to string as expected by database
-      monthly_rent: String(pgData.roomTypes?.[0]?.price || 0), // Convert to string
+      occupied_rooms: 0,
+      monthly_rent: pgData.roomTypes?.[0]?.price || 0,
       amenities: pgData.roomTypes?.flatMap(rt => rt.amenities || []) || [],
       images: pgData.images || [],
-      revenue: '0' // Convert to string as expected by database
+      revenue: 0
     };
 
     console.log('PG Service: Transformed DB data:', dbPGData);
 
-    // Insert the PG into the database - Supabase will auto-generate the id
+    // Insert the PG into the database
     const { data, error } = await supabase
       .from('pgs')
-      .insert(dbPGData as any) // Type assertion to work around Supabase type issues
+      .insert(dbPGData)
       .select()
       .single();
 
@@ -83,7 +76,6 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
       console.error('Database error when inserting PG:', error);
       logError('Error adding PG:', error);
       
-      // Provide more specific error messages
       if (error.code === '23503') {
         throw new Error('Selected manager is not available. The PG was created without a manager assignment.');
       }
@@ -97,7 +89,6 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
 
     console.log('PG Service: PG added successfully to database:', data);
     
-    // Transform back to application format
     const transformedPG = transformPGFromDB(data);
     
     // Create rooms for this PG based on the configuration
@@ -110,7 +101,6 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
       }
     } catch (roomError) {
       console.error('Error creating rooms:', roomError);
-      // Don't fail the entire PG creation if room creation fails
       console.warn('PG created but room creation failed - rooms can be added manually');
     }
     
@@ -266,18 +256,18 @@ export const updatePG = async (id: string, pgData: PG): Promise<PG> => {
     }
 
     // Transform the PG data to match database schema
-    const dbPGData: PGUpdate = {
+    const dbPGData = {
       name: pgData.name,
       description: pgData.contactInfo || '',
       address: pgData.location || '',
-      pg_type: pgData.type, // Ensure type field is properly mapped to pg_type
+      pg_type: pgData.type,
       manager_id: managerId,
       total_rooms: pgData.totalRooms || 0,
-      occupied_rooms: String(pgData.actualOccupancy || 0), // Convert to string
-      monthly_rent: String(pgData.roomTypes?.[0]?.price || pgData.revenue || 0), // Convert to string
+      occupied_rooms: pgData.actualOccupancy || 0,
+      monthly_rent: pgData.roomTypes?.[0]?.price || pgData.revenue || 0,
       amenities: pgData.roomTypes?.flatMap(rt => rt.amenities || []) || [],
       images: pgData.images || [],
-      revenue: String(pgData.revenue || 0), // Convert to string
+      revenue: pgData.revenue || 0,
       updated_at: new Date().toISOString()
     };
 
@@ -304,7 +294,6 @@ export const updatePG = async (id: string, pgData: PG): Promise<PG> => {
     console.log('PG updated successfully in database:', data);
     console.log('Updated pg_type value in database:', data.pg_type);
     
-    // Transform back to application format
     const transformedPG = transformPGFromDB(data);
     console.log('Transformed PG for frontend:', transformedPG);
     console.log('Final type value:', transformedPG.type);

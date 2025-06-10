@@ -21,8 +21,8 @@ const convertDbUserToUserData = (dbUser: any): UserData => {
     email: dbUser.email,
     role: dbUser.role as 'admin' | 'manager' | 'accountant' | 'viewer',
     status: dbUser.status || 'active',
-    lastLogin: dbUser.lastLogin || 'Never',
-    assignedPGs: Array.isArray(dbUser.assignedPGs) ? dbUser.assignedPGs : (dbUser.assignedPGs ? JSON.parse(dbUser.assignedPGs) : []),
+    lastLogin: dbUser.lastlogin || 'Never',
+    assignedPGs: Array.isArray(dbUser.assignedpgs) ? dbUser.assignedpgs : [],
     created_at: dbUser.created_at,
     updated_at: dbUser.updated_at
   };
@@ -50,19 +50,15 @@ export const fetchUsers = async () => {
 
 export const addUser = async (userData: Omit<UserData, 'id' | 'created_at' | 'updated_at'>) => {
   try {
-    // Generate a UUID for the new user
-    const userId = crypto.randomUUID();
-    
     const { data, error } = await supabase
       .from('users')
       .insert([{
-        id: userId,
         name: userData.name,
         email: userData.email,
         role: userData.role,
         status: userData.status,
-        assignedPGs: userData.assignedPGs,
-        lastLogin: userData.lastLogin
+        assignedpgs: userData.assignedPGs,
+        lastlogin: new Date().toISOString()
       }])
       .select()
       .single();
@@ -87,8 +83,8 @@ export const updateUser = async (id: string, userData: Partial<UserData>) => {
     if (userData.email !== undefined) updateData.email = userData.email;
     if (userData.role !== undefined) updateData.role = userData.role;
     if (userData.status !== undefined) updateData.status = userData.status;
-    if (userData.assignedPGs !== undefined) updateData.assignedPGs = userData.assignedPGs;
-    if (userData.lastLogin !== undefined) updateData.lastLogin = userData.lastLogin;
+    if (userData.assignedPGs !== undefined) updateData.assignedpgs = userData.assignedPGs;
+    if (userData.lastLogin !== undefined) updateData.lastlogin = userData.lastLogin;
     
     updateData.updated_at = new Date().toISOString();
 
@@ -137,7 +133,7 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
     // Get current user data
     const { data: currentUser, error: fetchError } = await supabase
       .from('users')
-      .select('assignedPGs')
+      .select('assignedpgs')
       .eq('id', userId)
       .single();
 
@@ -147,7 +143,7 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
     }
 
     // Get current assigned PGs and add new one if not already present
-    const currentPGs = Array.isArray(currentUser.assignedPGs) ? currentUser.assignedPGs : [];
+    const currentPGs = Array.isArray(currentUser.assignedpgs) ? currentUser.assignedpgs : [];
     if (!currentPGs.includes(pgName)) {
       currentPGs.push(pgName);
     }
@@ -155,7 +151,7 @@ export const assignPGToUser = async (userId: string, pgName: string) => {
     // Update user with new PG assignment
     const { data, error } = await supabase
       .from('users')
-      .update({ assignedPGs: currentPGs })
+      .update({ assignedpgs: currentPGs })
       .eq('id', userId)
       .select()
       .single();
@@ -179,7 +175,7 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
     // Get current user data
     const { data: currentUser, error: fetchError } = await supabase
       .from('users')
-      .select('assignedPGs')
+      .select('assignedpgs')
       .eq('id', userId)
       .single();
 
@@ -189,13 +185,13 @@ export const removePGFromUser = async (userId: string, pgName: string) => {
     }
 
     // Get current assigned PGs and remove the specified one
-    const currentPGs = Array.isArray(currentUser.assignedPGs) ? currentUser.assignedPGs : [];
+    const currentPGs = Array.isArray(currentUser.assignedpgs) ? currentUser.assignedpgs : [];
     const updatedPGs = currentPGs.filter((pg: string) => pg !== pgName);
 
     // Update user with removed PG assignment
     const { data, error } = await supabase
       .from('users')
-      .update({ assignedPGs: updatedPGs })
+      .update({ assignedpgs: updatedPGs })
       .eq('id', userId)
       .select()
       .single();

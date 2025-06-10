@@ -8,15 +8,15 @@ export const transformPGFromDB = (dbPG: any): PG => {
     const transformed: PG = {
       id: dbPG.id,
       name: dbPG.name || '',
-      type: dbPG.pg_type || 'male', // Use pg_type from database
-      location: dbPG.address || dbPG.location || '',
+      type: dbPG.pg_type || 'male',
+      location: dbPG.address || '',
       contactInfo: dbPG.description || '',
       totalRooms: dbPG.total_rooms || 0,
-      totalBeds: dbPG.total_rooms || 0, // Default to total_rooms if no separate bed count
-      floors: 1, // Default value since not stored in DB
+      totalBeds: dbPG.total_rooms || 0,
+      floors: 1,
       images: Array.isArray(dbPG.images) ? dbPG.images : [],
       amenities: Array.isArray(dbPG.amenities) ? dbPG.amenities : [],
-      roomTypes: [], // Will be populated separately
+      roomTypes: [],
       revenue: Number(dbPG.revenue) || 0,
       occupancyRate: dbPG.total_rooms > 0 ? 
         Math.round((dbPG.occupied_rooms / dbPG.total_rooms) * 100) : 0,
@@ -24,7 +24,7 @@ export const transformPGFromDB = (dbPG: any): PG => {
       actualOccupancy: dbPG.occupied_rooms || 0,
       totalCapacity: dbPG.total_rooms || 0,
       managerId: dbPG.manager_id || null,
-      manager: null // Will be populated if needed
+      manager: null
     };
 
     console.log('Transformed PG:', transformed);
