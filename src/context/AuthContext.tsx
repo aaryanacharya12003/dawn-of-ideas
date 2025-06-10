@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
@@ -84,8 +83,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check for existing session
     const checkUser = async () => {
       try {
+        console.log('AuthContext: Checking for existing user session...');
+        
+        // Check localStorage first for demo users or stored auth
+        const storedUser = localStorage.getItem('demo-user');
+        if (storedUser) {
+          console.log('AuthContext: Found stored demo user');
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setIsLoading(false);
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          console.log('AuthContext: Found Supabase session');
           // Try to get user profile from users table first
           const { data: userData, error: userError } = await supabase
             .from('users')
@@ -94,12 +106,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .single();
 
           if (userData && !userError) {
-            console.log('Found user in users table:', userData);
+            console.log('AuthContext: Found user in users table:', userData);
             setUser(convertDbUserToUser(userData));
           }
         }
       } catch (error) {
-        console.error('Error checking user session:', error);
+        console.error('AuthContext: Error checking user session:', error);
       } finally {
         setIsLoading(false);
       }
@@ -109,6 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthContext: Auth state changed:', event);
       if (event === 'SIGNED_IN' && session?.user) {
         // Get user profile from database
         const { data: userData, error: userError } = await supabase
@@ -122,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        localStorage.removeItem('demo-user');
       }
     });
 
@@ -131,79 +145,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log('Attempting login for:', email);
+      console.log('AuthContext: Attempting login for:', email);
 
       // First try demo users
       const demoUser = DEMO_USERS.find(u => u.email === email && u.password === password);
       if (demoUser) {
-        console.log('Demo user login successful');
+        console.log('AuthContext: Demo user login successful');
         const { password: _, ...userWithoutPassword } = demoUser;
-        setUser(userWithoutPassword as User);
+        const demoUserData = userWithoutPassword as User;
+        setUser(demoUserData);
+        localStorage.setItem('demo-user', JSON.stringify(demoUserData));
         setIsLoading(false);
         return;
       }
 
       // Try to find user in our users table first
+      console.log('AuthContext: Checking users table for:', email);
       const { data: existingUser, error: userCheckError } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
+
+      console.log('AuthContext: Database user lookup result:', { existingUser, userCheckError });
 
       if (existingUser && !userCheckError) {
-        // User exists in our table, try Supabase authentication
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          // If email not confirmed, we can still log them in using our users table
-          if (error.message.includes('Email not confirmed')) {
-            console.log('Email not confirmed, logging in with stored user data');
-            setUser(convertDbUserToUser(existingUser));
-            
-            // Update last login time
-            await supabase
-              .from('users')
-              .update({ lastLogin: new Date().toISOString() })
-              .eq('id', existingUser.id);
-            
-            setIsLoading(false);
-            return;
-          }
-          console.error('Supabase login error:', error);
-          throw error;
-        }
-
-        if (data.user) {
-          console.log('Database user login successful:', existingUser);
-          setUser(convertDbUserToUser(existingUser));
-
+        // For database users, we'll use a simple password check
+        // In a real app, you'd want proper password hashing
+        const defaultPassword = 'password'; // Default password for all database users
+        
+        if (password === defaultPassword) {
+          console.log('AuthContext: Database user login successful:', existingUser);
+          const userData = convertDbUserToUser(existingUser);
+          setUser(userData);
+          
+          // Store as demo user to persist session
+          localStorage.setItem('demo-user', JSON.stringify(userData));
+          
           // Update last login time
           await supabase
             .from('users')
             .update({ lastLogin: new Date().toISOString() })
             .eq('id', existingUser.id);
-        }
-      } else {
-        // User not found in users table, try direct authentication
-        const { data: authUser, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (authError) {
-          console.error('Supabase login error:', authError);
-          throw authError;
-        }
-
-        if (authUser.user) {
-          throw new Error('User profile not found in database');
+          
+          setIsLoading(false);
+          return;
+        } else {
+          throw new Error('Invalid password');
         }
       }
+
+      // If no user found in database, try Supabase auth
+      console.log('AuthContext: Trying Supabase authentication');
+      const { data: authUser, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        console.error('AuthContext: Supabase login error:', authError);
+        throw new Error('Invalid email or password');
+      }
+
+      if (authUser.user) {
+        // This would be for users created through Supabase auth
+        throw new Error('User profile not found in database');
+      }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -212,10 +221,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      console.log('AuthContext: Logging out user');
+      localStorage.removeItem('demo-user');
       await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('AuthContext: Logout error:', error);
     }
   };
 
