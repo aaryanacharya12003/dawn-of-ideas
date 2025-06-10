@@ -264,33 +264,33 @@ export type Database = {
       }
       users: {
         Row: {
-          assignedpgs: Json | null
+          assignedPGs: Json | null
           created_at: string
           email: string
           id: string
-          lastlogin: string | null
+          lastLogin: string | null
           name: string
           role: string
           status: string
           updated_at: string
         }
         Insert: {
-          assignedpgs?: Json | null
+          assignedPGs?: Json | null
           created_at?: string
           email: string
           id?: string
-          lastlogin?: string | null
+          lastLogin?: string | null
           name: string
           role?: string
           status?: string
           updated_at?: string
         }
         Update: {
-          assignedpgs?: Json | null
+          assignedPGs?: Json | null
           created_at?: string
           email?: string
           id?: string
-          lastlogin?: string | null
+          lastLogin?: string | null
           name?: string
           role?: string
           status?: string

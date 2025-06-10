@@ -71,8 +71,8 @@ const convertDbUserToUser = (dbUser: any): User => {
     email: dbUser.email,
     role: dbUser.role as any,
     status: dbUser.status || 'active',
-    lastLogin: dbUser.lastlogin || 'Never',
-    assignedPGs: ensureStringArray(dbUser.assignedpgs)
+    lastLogin: dbUser.lastLogin || 'Never',
+    assignedPGs: ensureStringArray(dbUser.assignedPGs)
   };
 };
 
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Update last login time
             await supabase
               .from('users')
-              .update({ lastlogin: new Date().toISOString() })
+              .update({ lastLogin: new Date().toISOString() })
               .eq('id', existingUser.id);
             
             setIsLoading(false);
@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Update last login time
           await supabase
             .from('users')
-            .update({ lastlogin: new Date().toISOString() })
+            .update({ lastLogin: new Date().toISOString() })
             .eq('id', existingUser.id);
         }
       } else {
@@ -255,8 +255,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             email,
             role,
             status: 'active',
-            lastlogin: new Date().toISOString(),
-            assignedpgs: finalAssignedPGs
+            lastLogin: new Date().toISOString(),
+            assignedPGs: finalAssignedPGs
           }])
           .select()
           .single();
@@ -284,7 +284,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: userData.email,
           role: userData.role,
           status: userData.status,
-          assignedpgs: userData.assignedPGs
+          assignedPGs: userData.assignedPGs
         })
         .eq('id', userData.id)
         .select()
