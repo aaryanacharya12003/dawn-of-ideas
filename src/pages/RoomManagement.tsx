@@ -370,22 +370,21 @@ const RoomManagement = () => {
       </Tabs>
       
       <AddRoomDialog
-        isOpen={addRoomDialogOpen}
-        onClose={() => setAddRoomDialogOpen(false)}
-        onAddRoom={handleAddRoom}
-        initialPgId={selectedPG !== "all" ? selectedPG : undefined}
+        open={addRoomDialogOpen}
+        onOpenChange={setAddRoomDialogOpen}
+        onSave={handleAddRoom}
       />
 
-      {/* Edit Room Dialog - Fixed prop name from 'room' to 'editRoom' */}
+      {/* Edit Room Dialog */}
       {selectedRoom && (
         <AddRoomDialog
-          isOpen={editDialogOpen}
-          onClose={() => {
-            setEditDialogOpen(false);
-            setSelectedRoom(null);
+          open={editDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) setSelectedRoom(null);
           }}
-          onAddRoom={handleUpdateRoom}
-          editRoom={selectedRoom}
+          onSave={handleUpdateRoom}
+          room={selectedRoom}
         />
       )}
       

@@ -157,6 +157,7 @@ const Index = () => {
     
     console.log("Dashboard: Calculated stats:", {
       totalStudents,
+      studentsGrowth,
       roomsOccupied,
       totalRooms,
       occupancyRate,
@@ -337,9 +338,9 @@ const Index = () => {
       )}
       
       <AddRoomDialog
-        isOpen={addRoomDialogOpen}
-        onClose={() => setAddRoomDialogOpen(false)}
-        onAddRoom={handleAddRoom}
+        open={addRoomDialogOpen}
+        onOpenChange={setAddRoomDialogOpen}
+        onSave={handleAddRoom}
       />
     </>
   );

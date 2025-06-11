@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useData } from '@/context/DataContext';
-import { Room } from '@/types';
+import { Room, RoomStatus } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const roomFormSchema = z.object({
@@ -18,7 +18,7 @@ const roomFormSchema = z.object({
   capacity: z.number().min(1, { message: "Capacity must be at least 1." }),
   rent: z.number().min(0, { message: "Rent must be 0 or greater." }),
   pgId: z.string().min(1, { message: "Please select a PG." }),
-  status: z.string().optional()
+  status: z.enum(['vacant', 'partial', 'full', 'maintenance']).optional()
 });
 
 type RoomFormValues = z.infer<typeof roomFormSchema>;
@@ -48,7 +48,7 @@ const ResponsiveRoomDialog: React.FC<ResponsiveRoomDialogProps> = ({
       capacity: 1,
       rent: 0,
       pgId: '',
-      status: 'available'
+      status: 'vacant'
     }
   });
 
@@ -60,7 +60,7 @@ const ResponsiveRoomDialog: React.FC<ResponsiveRoomDialogProps> = ({
         capacity: room.capacity,
         rent: room.rent || 0,
         pgId: room.pgId,
-        status: room.status || 'available'
+        status: (room.status as RoomStatus) || 'vacant'
       });
     } else {
       form.reset({
@@ -69,7 +69,7 @@ const ResponsiveRoomDialog: React.FC<ResponsiveRoomDialogProps> = ({
         capacity: 1,
         rent: 0,
         pgId: '',
-        status: 'available'
+        status: 'vacant'
       });
     }
   }, [room, form]);
@@ -84,7 +84,8 @@ const ResponsiveRoomDialog: React.FC<ResponsiveRoomDialogProps> = ({
         capacity: data.capacity,
         rent: data.rent,
         pgId: data.pgId,
-        status: data.status || 'available'
+        status: (data.status as RoomStatus) || 'vacant',
+        students: room?.students || []
       };
 
       await onSave(roomData);
@@ -236,10 +237,10 @@ const ResponsiveRoomDialog: React.FC<ResponsiveRoomDialogProps> = ({
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="available">Available</SelectItem>
-                          <SelectItem value="occupied">Occupied</SelectItem>
-                          <SelectItem value="maintenance">Maintenance</SelectItem>
                           <SelectItem value="vacant">Vacant</SelectItem>
+                          <SelectItem value="partial">Partially Occupied</SelectItem>
+                          <SelectItem value="full">Fully Occupied</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
