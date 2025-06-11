@@ -9,6 +9,26 @@ export const usePGOperations = (refreshAllData: () => Promise<void>) => {
   const handleAddPG = async (pg: Omit<PG, 'id'>): Promise<PG> => {
     try {
       console.log("DataContext PGOps: Adding PG:", pg.name);
+      
+      // Basic validation
+      if (!pg.name?.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'PG name is required',
+          variant: 'destructive'
+        });
+        throw new Error('PG name is required');
+      }
+      
+      if (!pg.location?.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Location is required',
+          variant: 'destructive'
+        });
+        throw new Error('Location is required');
+      }
+      
       const newPG = await addPGService(pg);
       console.log("DataContext PGOps: PG added successfully:", newPG);
       
@@ -17,15 +37,34 @@ export const usePGOperations = (refreshAllData: () => Promise<void>) => {
       
       toast({
         title: 'Success',
-        description: `${pg.name} has been created successfully.`
+        description: `${pg.name} has been created successfully with ${pg.totalRooms} rooms.`
       });
       
       return newPG;
     } catch (error) {
       console.error("DataContext PGOps: Error adding PG:", error);
+      
+      let errorMessage = `Failed to create ${pg.name}. Please try again.`;
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          errorMessage = 'Please log in to create PGs.';
+        } else if (error.message.includes('foreign key constraint')) {
+          errorMessage = 'Selected manager is not available. Please choose a different manager or create the PG without a manager.';
+        } else if (error.message.includes('failed to create rooms')) {
+          errorMessage = `${pg.name} was created but some rooms could not be generated. You can add rooms manually from the Room Management page.`;
+        } else if (error.message.includes('required')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('duplicate')) {
+          errorMessage = 'A PG with this name already exists. Please choose a different name.';
+        } else {
+          errorMessage = `Failed to create PG: ${error.message}`;
+        }
+      }
+      
       toast({
         title: 'Error',
-        description: `Failed to create ${pg.name}. Please try again.`,
+        description: errorMessage,
         variant: 'destructive'
       });
       throw error;

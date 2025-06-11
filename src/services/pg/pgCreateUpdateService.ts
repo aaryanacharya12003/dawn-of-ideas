@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logError, transformPGFromDB } from './pgUtils';
 import { PG } from '@/types';
@@ -78,6 +77,10 @@ export const addPG = async (pgData: Omit<PG, 'id'>): Promise<PG> => {
       
       if (error.code === '23503') {
         throw new Error('Selected manager is not available. The PG was created without a manager assignment.');
+      }
+      
+      if (error.code === '42501') {
+        throw new Error('Authentication required. Please log in and try again.');
       }
       
       throw new Error(`Failed to create PG: ${error.message}`);
