@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
@@ -21,7 +20,21 @@ const PGManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Use DataContext as the single source of truth
+  // Use DataContext as the single source of truth with error boundary
+  const dataContext = useData();
+  
+  // Defensive check to ensure context is available
+  if (!dataContext) {
+    console.error("PGManagement: DataContext not available");
+    return (
+      <div className="page-container">
+        <div className="flex justify-center items-center py-12">
+          <p>Loading data context...</p>
+        </div>
+      </div>
+    );
+  }
+  
   const { 
     pgs: pgData, 
     isLoading: loading,
@@ -29,7 +42,7 @@ const PGManagement = () => {
     addPG,
     updatePG,
     deletePG
-  } = useData();
+  } = dataContext;
 
   // Use custom hooks for dialog management
   const {

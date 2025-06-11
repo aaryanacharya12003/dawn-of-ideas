@@ -13,7 +13,7 @@ const DataContext = createContext<DataContextType | null>(null);
 
 export const useData = () => {
   const context = useContext(DataContext);
-  if (context === null) {
+  if (!context) {
     throw new Error('useData must be used within a DataProvider');
   }
   return context;
