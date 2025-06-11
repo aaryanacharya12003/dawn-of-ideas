@@ -70,50 +70,34 @@ export const usePGFormSubmit = ({
     try {
       setIsSubmitting(true);
       console.log("usePGFormSubmit: Form submission started with values:", values);
-      console.log("usePGFormSubmit: PG Type value being submitted:", values.type);
 
-      // Enhanced validation with better error messages
+      // Comprehensive validation with specific error messages
+      const validationErrors: string[] = [];
+
       if (!values.name?.trim()) {
-        toast({
-          title: 'Validation Error',
-          description: 'PG name is required.',
-          variant: 'destructive'
-        });
-        return;
+        validationErrors.push('PG name is required');
       }
 
       if (!values.location?.trim()) {
-        toast({
-          title: 'Validation Error',
-          description: 'Location is required.',
-          variant: 'destructive'
-        });
-        return;
+        validationErrors.push('Location is required');
       }
 
       if (!values.totalRooms || values.totalRooms < 1) {
-        toast({
-          title: 'Validation Error',
-          description: 'Total rooms must be at least 1.',
-          variant: 'destructive'
-        });
-        return;
+        validationErrors.push('Total rooms must be at least 1');
       }
 
       if (!values.floors || values.floors < 1) {
-        toast({
-          title: 'Validation Error',
-          description: 'Number of floors must be at least 1.',
-          variant: 'destructive'
-        });
-        return;
+        validationErrors.push('Number of floors must be at least 1');
       }
 
-      // Validate PG type
       if (!values.type || !['male', 'female', 'unisex'].includes(values.type)) {
+        validationErrors.push('Please select a valid PG type (Male, Female, or Unisex)');
+      }
+
+      if (validationErrors.length > 0) {
         toast({
-          title: 'Validation Error',
-          description: 'Please select a valid PG type.',
+          title: 'Validation Errors',
+          description: validationErrors.join(', '),
           variant: 'destructive'
         });
         return;
@@ -136,7 +120,7 @@ export const usePGFormSubmit = ({
       
       let pgData: PG | Omit<PG, 'id'> = {
         name: values.name.trim(),
-        type: values.type as 'male' | 'female' | 'unisex', // Ensure proper type casting
+        type: values.type as 'male' | 'female' | 'unisex',
         location: values.location.trim(),
         contactInfo: values.contactInfo?.trim() || '',
         totalRooms: Math.max(1, values.totalRooms),
@@ -161,7 +145,6 @@ export const usePGFormSubmit = ({
       };
       
       console.log("usePGFormSubmit: Final PG data before save:", pgData);
-      console.log("usePGFormSubmit: PG Type in final data:", pgData.type);
       
       if (!isEdit && roomAllocations.length > 0) {
         (pgData as any).roomAllocations = roomAllocations;
@@ -179,6 +162,10 @@ export const usePGFormSubmit = ({
       
       if (success) {
         console.log("usePGFormSubmit: PG save successful");
+        toast({
+          title: 'Success',
+          description: `PG ${isEdit ? 'updated' : 'created'} successfully!`
+        });
         onClose();
         
         if (!isEdit) {
@@ -196,12 +183,34 @@ export const usePGFormSubmit = ({
         }
       } else {
         console.log("usePGFormSubmit: PG save failed");
+        toast({
+          title: 'Error',
+          description: `Failed to ${isEdit ? 'update' : 'create'} PG. Please check the form and try again.`,
+          variant: 'destructive'
+        });
       }
     } catch (error) {
       console.error("usePGFormSubmit: Error in form submit:", error);
+      
+      let errorMessage = `Failed to ${isEdit ? 'update' : 'create'} PG. `;
+      
+      if (error instanceof Error) {
+        if (error.message.includes('foreign key constraint')) {
+          errorMessage += 'Selected manager is not available. Please choose a different manager or create the PG without a manager.';
+        } else if (error.message.includes('duplicate')) {
+          errorMessage += 'A PG with this name already exists. Please choose a different name.';
+        } else if (error.message.includes('required')) {
+          errorMessage += error.message;
+        } else {
+          errorMessage += error.message;
+        }
+      } else {
+        errorMessage += 'Please check your inputs and try again.';
+      }
+      
       toast({
         title: 'Error',
-        description: `Failed to ${isEdit ? 'update' : 'create'} PG. Please check your inputs and try again.`,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

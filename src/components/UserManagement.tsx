@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,29 +11,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/context/AuthContext';
-import { User as LucideUser, Trash2 } from 'lucide-react';
+import { User as LucideUser, Trash2, Eye, EyeOff } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { addUser } from '@/services/userService';
 
 const userFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.enum(["admin", "manager", "accountant"])
+  role: z.enum(["admin", "manager", "accountant", "viewer"])
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
 const UserManagement = () => {
-  const { user, createUser, deleteUser, getUsers } = useAuth();
+  const { user, deleteUser, getUsers } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   
-  // Only allow admins to access this page
   const isAdmin = user?.role === 'admin';
 
   const form = useForm<UserFormValues>({
@@ -70,22 +72,32 @@ const UserManagement = () => {
   }, [isAdmin]);
 
   const onSubmit = async (data: UserFormValues) => {
-    console.log("Submitting form data:", data);
+    console.log("Creating user with data:", data);
     setIsCreating(true);
     try {
-      await createUser(data.email, data.password, data.name, data.role);
+      // Use the userService directly instead of auth createUser (which calls signin)
+      await addUser({
+        name: data.name,
+        email: data.email,
+        role: data.role as 'admin' | 'manager' | 'accountant' | 'viewer',
+        status: 'active',
+        assignedPGs: [],
+        lastLogin: 'Never'
+      });
+      
       form.reset();
       setIsDialogOpen(false);
-      await fetchUsers(); // Refresh the user list
+      await fetchUsers();
+      
       toast({
         title: "Success",
-        description: "User created successfully. They can now log in with their credentials.",
+        description: "User created successfully. They can now log in with the default password 'password'.",
       });
     } catch (error: any) {
       console.error("Error creating user:", error);
       
       let errorMessage = "Failed to create user. Please try again.";
-      if (error.message?.includes('already registered')) {
+      if (error.message?.includes('duplicate key')) {
         errorMessage = "A user with this email already exists. Please use a different email address.";
       } else if (error.message?.includes('email')) {
         errorMessage = "Please check the email address and try again.";
@@ -105,7 +117,7 @@ const UserManagement = () => {
     setIsLoading(true);
     try {
       await deleteUser(id);
-      await fetchUsers(); // Refresh the user list
+      await fetchUsers();
       toast({
         title: "Success",
         description: "User deleted successfully.",
@@ -122,7 +134,6 @@ const UserManagement = () => {
     }
   };
 
-  // If not admin, don't render the component
   if (!isAdmin) {
     return (
       <Card>
@@ -148,11 +159,11 @@ const UserManagement = () => {
                 <LucideUser className="mr-2 h-4 w-4" /> Add User
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Create a new user with specific role and permissions. They will be able to log in immediately after creation.
+                  Create a new user. They will be able to log in with the default password "password".
                 </DialogDescription>
               </DialogHeader>
               
@@ -165,7 +176,7 @@ const UserManagement = () => {
                       <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="Enter full name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -193,7 +204,27 @@ const UserManagement = () => {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showPassword ? "text" : "password"} 
+                              placeholder="Enter password" 
+                              {...field} 
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -207,10 +238,7 @@ const UserManagement = () => {
                       <FormItem>
                         <FormLabel>Role</FormLabel>
                         <FormControl>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
@@ -218,6 +246,7 @@ const UserManagement = () => {
                               <SelectItem value="admin">Admin</SelectItem>
                               <SelectItem value="manager">Manager</SelectItem>
                               <SelectItem value="accountant">Accountant</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -244,6 +273,7 @@ const UserManagement = () => {
           </Dialog>
         </div>
       </CardHeader>
+      
       <CardContent>
         <div className="border rounded-md overflow-hidden">
           <Table>
