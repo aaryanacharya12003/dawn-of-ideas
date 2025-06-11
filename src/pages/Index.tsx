@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
@@ -99,12 +100,6 @@ const Index = () => {
         // Data will automatically refresh through DataContext
       }
     }
-  };
-
-  const handleAddRoom = async (room: any) => {
-    console.log("Dashboard: Adding room and refreshing data");
-    await addRoom(room);
-    // Data will automatically refresh through DataContext
   };
 
   const getGreeting = () => {
@@ -340,7 +335,6 @@ const Index = () => {
       <AddRoomDialog
         open={addRoomDialogOpen}
         onOpenChange={setAddRoomDialogOpen}
-        onSave={handleAddRoom}
       />
     </>
   );

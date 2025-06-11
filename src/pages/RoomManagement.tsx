@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -80,43 +81,6 @@ const RoomManagement = () => {
       setSelectedPG(filteredPGs[0].id);
     }
   }, [user, filteredPGs]);
-
-  const handleAddRoom = async (room: Room) => {
-    try {
-      await addRoom(room);
-      setAddRoomDialogOpen(false);
-      toast({
-        title: "Success",
-        description: `Room ${room.number} has been added successfully.`
-      });
-    } catch (error) {
-      console.error("Error adding room:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add room. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleUpdateRoom = async (room: Room) => {
-    try {
-      await updateRoom(room);
-      setEditDialogOpen(false);
-      setSelectedRoom(null);
-      toast({
-        title: "Success",
-        description: `Room ${room.number} has been updated successfully.`
-      });
-    } catch (error) {
-      console.error("Error updating room:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update room. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleDeleteRoom = async () => {
     if (!selectedRoom) return;
@@ -372,7 +336,6 @@ const RoomManagement = () => {
       <AddRoomDialog
         open={addRoomDialogOpen}
         onOpenChange={setAddRoomDialogOpen}
-        onSave={handleAddRoom}
       />
 
       {/* Edit Room Dialog */}
@@ -383,7 +346,6 @@ const RoomManagement = () => {
             setEditDialogOpen(open);
             if (!open) setSelectedRoom(null);
           }}
-          onSave={handleUpdateRoom}
           room={selectedRoom}
         />
       )}
